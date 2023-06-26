@@ -29,7 +29,7 @@ def check_the_annotations(to_clean: list):
             for annotation in os.listdir(annotation_folder):
                 if filename_mask in annotation and annotation.endswith('.tif'):
                     imgs_split.append(os.path.join(annotation_folder, annotation))
-            blobs = find_blobs(imgs_split)
+            blobs = get_blobs(imgs_split)
             plt.imshow(blobs[0]) 
             plt.savefig(os.path.join('./', 'tmp', 'blobs_fig.png'))
             cv2.imshow("Blobs", np.asarray(cv2.imread(os.path.join('./', 'tmp', 'blobs_fig.png'))))
