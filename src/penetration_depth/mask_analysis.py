@@ -202,6 +202,9 @@ def check_annotation(paths: list, measurements_type: str, filename_mask: str):
         files = os.listdir(os.path.join(folder, 'annotation'))
         for f in files:
             if '.tif' in f:
+                old_name = os.path.join(folder, 'annotation', f)
+                new_name = os.path.join(folder, 'annotation', f.replace(filename_mask, 'ROI_'))
+                os.rename(old_name, new_name)
                 counter += 1
                     
         for length in numbers:
@@ -233,7 +236,7 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
                 if type(dat) == tuple:
                     data_to_curate.append(dat)
                 else: 
-                    data = reorganize_data(dat)  
+                    data = reorganize_data(dat) 
                     for idx, dat in data.items():
                         data_combined[path + f'_ROI_' + str(idx)] = dat
             except FileNotFoundError :
@@ -243,22 +246,23 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
                     traceback.print_exc()
     return data_combined, data_to_curate
 
-def find_blobs(img_split, eroding: bool = True, kernel_size: int = 5):
+def get_blobs(img_split, eroding: bool = True, kernel_size: int = 8):
     imgs_splits = []
     for img in img_split:
         imgs_splits.append(np.array(Image.open(img)))
-                           
+        
     mask_combined = np.zeros(imgs_splits[0].shape)
-    for mask in imgs_splits:
-        mask_combined += mask
-    mask = mask_combined
-  
-    if eroding:
+    mask_combined_blob = np.zeros(imgs_splits[0].shape)
+    
+    for idx, img in enumerate(imgs_splits):
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
-        mask = cv2.erode(mask, kernel) 
-
-    blobs = find_blob(mask)
-    return blobs
+        mask = cv2.erode(img, kernel) 
+        mask_combined += (idx + 1) * (mask != 0)
+        mask_combined_blob += mask
+        
+    blobs = find_blob(mask_combined_blob)
+    
+    return mask_combined, blobs
                            
 def find_blob(mask):
     blur_radius = 0
@@ -305,25 +309,17 @@ def create_histogram(path: str, filename_mask: str, wavelength: str):
     imgs_split = []
     annotation_folder = os.path.join(path, 'annotation')
     for annotation in os.listdir(annotation_folder):
-        if filename_mask in annotation and annotation.endswith('.tif'):
+        if annotation.endswith('.tif'):
             imgs_split.append(os.path.join(annotation_folder, annotation))
-    
-    blobs = find_blobs(imgs_split)
+    print(imgs_split)
+    mask_combined, blobs = get_blobs(imgs_split)
     try:
         assert blobs[1] == len(imgs_split)
     except:
-        try:
-            blobs = find_blobs(imgs_split, eroding=False)
-            assert blobs[1] == len(imgs_split)
-        except:
-            blobs = find_blobs(imgs_split, kernel_size=10)
-            try:
-                assert blobs[1] == len(imgs_split)
-            except:
-                return path, filename_mask, wavelength
+        return path, filename_mask, wavelength
 
     MM = np.load(os.path.join(path, 'polarimetry', wavelength, 'MM.npz'))
-    ROI_values = get_area_of_interest_values(MM, blobs[0])
+    ROI_values = get_area_of_interest_values(MM, mask_combined)
     
     return ROI_values
 

@@ -52,7 +52,7 @@
         ├── ROI_2.tif
         └── ROI_3.tif
 ```  
-The ROIs should be numbered, as described above (ROI_1, ROI_2, ...).
+The ROIs should be numbered, as described above (ROI_1, ROI_2, ...). The number after the ROI should corresponds to the one that will be present in the different results files generated afterwards.
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
