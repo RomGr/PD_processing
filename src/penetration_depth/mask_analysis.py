@@ -311,7 +311,6 @@ def create_histogram(path: str, filename_mask: str, wavelength: str):
     for annotation in os.listdir(annotation_folder):
         if annotation.endswith('.tif'):
             imgs_split.append(os.path.join(annotation_folder, annotation))
-    print(imgs_split)
     mask_combined, blobs = get_blobs(imgs_split)
     try:
         assert blobs[1] == len(imgs_split)
