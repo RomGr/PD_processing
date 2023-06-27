@@ -12,7 +12,7 @@ import cv2
 import pickle
 import pandas as pd
 import math
-import time
+import copy
 import traceback
 
 from penetration_depth.helpers import load_plot_parameters, load_parameter_maps
@@ -744,8 +744,10 @@ def create_output_pickle(data: dict, parameters: list, path_data, measurements_t
             all_measurements_std.append(values)
         else:
             all_measurements.append(values)
+
     all_measurements = pd.concat(all_measurements, axis=1, ignore_index=False).T.drop_duplicates().T
     all_measurements_std = pd.concat(all_measurements_std, axis=1, ignore_index=False).T.drop_duplicates().T
+    
     
     all_measurements['azimuth_pr'] = load_raw_data_azimuth(results_path, data, proportion_azimuth_values)
     all_measurements['azimuth_iq'] = all_measurements['azimuth']
@@ -793,16 +795,29 @@ def get_data_df(measurements_types, paths_data, wavelength, parameters):
         data_df[measurements_type] = data_measurement_type
         
     data_parameter = {}
+    data_parameter_complete_thickness = {}
     for parameter in parameters:
         data_param = {}
+        data_param_complete_thickness = {}
         for measurements_type in measurements_types:
             data_param[measurements_type] = data_df[measurements_type][parameter]
+            new_data_df = copy.deepcopy(data_df[measurements_type][parameter])
+            if measurements_type == '0_overimposition' or measurements_type == '45_overimposition' or measurements_type == '90_overimposition':
+                new_data_df.index = 2 * new_data_df.index
+            elif measurements_type == '100+x':
+                new_data_df.index = 100 + new_data_df.index
+            else:
+                assert measurements_type == 'splitted'
+                new_data_df.index = new_data_df.index
+            data_param_complete_thickness[measurements_type] = new_data_df
+            
         data_parameter[parameter] = data_param
+        data_parameter_complete_thickness[parameter] = data_param_complete_thickness
     
-    return data_parameter
+    return data_parameter, data_parameter_complete_thickness
 
 def save_data_prism(measurements_types: list, path_data: str, wavelength: str, parameters: list):
-    data_parameter = get_data_df(measurements_types, path_data, wavelength, parameters)
+    data_parameter, data_parameter_complete_thickness = get_data_df(measurements_types, path_data, wavelength, parameters)
     results_path = os.path.join(path_data, 'results', 'prism_files')
     try:
         os.mkdir(results_path)
@@ -819,6 +834,14 @@ def save_data_prism(measurements_types: list, path_data: str, wavelength: str, p
         for _, df in data_parameter[parameter].items():
             dfs.append(df)
         results_path_excel = os.path.join(results_path, parameter + '_prism.xlsx')
+        concat = pd.concat(dfs, axis = 1)
+        concat = concat.sort_index()
+        concat.to_excel(results_path_excel)
+        
+        dfs = []
+        for _, df in data_parameter_complete_thickness[parameter].items():
+            dfs.append(df)
+        results_path_excel = os.path.join(results_path, parameter + 'real_thickness_prism.xlsx')
         concat = pd.concat(dfs, axis = 1)
         concat = concat.sort_index()
         concat.to_excel(results_path_excel)
