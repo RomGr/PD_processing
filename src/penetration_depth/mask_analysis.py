@@ -121,8 +121,8 @@ def process_one_measurement(path_data: str, measurements_type: str, wavelength: 
 
 def generate_plots(path_data, data, measurements_types, wavelength, metric: str = 'mean', Flag: bool = False):
     for measurements_type in tqdm(measurements_types):
-        path_data, results_path = get_params(path_data, measurements_type, wavelength)
-        paths, _, match_sequence = find_all_folders(path_data, measurements_type)
+        path_data_folder, results_path = get_params(path_data, measurements_type, wavelength)
+        paths, _, match_sequence = find_all_folders(path_data_folder, measurements_type)
         generate_histogram(data[measurements_type], results_path, match_sequence, Flag = Flag)
     
         thicknesses = get_x_thicnkesses(data[measurements_type], measurements_type)
@@ -162,6 +162,7 @@ def get_match_sequence(measurements_type: str):
         filename_mask = 'splitted'
         
     else:
+        
         raise ValueError
         
     return match_sequence, filename_mask
