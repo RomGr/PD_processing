@@ -27,11 +27,21 @@ def check_the_annotations(to_clean: list):
             imgs_split = []
             annotation_folder = os.path.join(path, 'annotation')
             for annotation in os.listdir(annotation_folder):
-                if filename_mask in annotation and annotation.endswith('.tif'):
+                if annotation.endswith('.tif'):
                     imgs_split.append(os.path.join(annotation_folder, annotation))
-            blobs = get_blobs(imgs_split)
+            try:
+                _, blobs = get_blobs(imgs_split)
+            except:
+                print(imgs_split, path)
+                
+            try:
+                os.mkdir(os.path.join('./', 'tmp'))
+            except:
+                pass
+            
             plt.imshow(blobs[0]) 
             plt.savefig(os.path.join('./', 'tmp', 'blobs_fig.png'))
+            
             cv2.imshow("Blobs", np.asarray(cv2.imread(os.path.join('./', 'tmp', 'blobs_fig.png'))))
             print(clean)
             print("Number of expected blobs: {}, Number of blobs: {}".format(len(imgs_split), blobs[1]))
@@ -248,7 +258,7 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
                     traceback.print_exc()
     return data_combined, data_to_curate
 
-def get_blobs(img_split, eroding: bool = True, kernel_size: int = 8):
+def get_blobs(img_split, eroding: bool = True, kernel_size: int = 5):
     imgs_splits = []
     for img in img_split:
         imgs_splits.append(np.array(Image.open(img)))
@@ -313,7 +323,10 @@ def create_histogram(path: str, filename_mask: str, wavelength: str, iq_size: in
     for annotation in os.listdir(annotation_folder):
         if annotation.endswith('.tif'):
             imgs_split.append(os.path.join(annotation_folder, annotation))
-    mask_combined, blobs = get_blobs(imgs_split)
+    try:
+        mask_combined, blobs = get_blobs(imgs_split)
+    except:
+        print(imgs_split, path)
     try:
         assert blobs[1] == len(imgs_split)
     except:

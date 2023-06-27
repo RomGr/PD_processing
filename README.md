@@ -66,7 +66,9 @@ The ROIs should be numbered, as described above (ROI_1, ROI_2, ...). The number 
         3. ```azimuth_pr```: the smallest interval containing proportion_azimuth_values% of the azimuth values.
         4. ```azimuth_iq```: the difference between the quantile iq_size and 100-iq_size of the azimuth values.
         5. ```azimuth_sd```: the standard deviation of the azimuth values.
-3. The results will be saved in the ```results``` folder, with the following architecture:
+3. Run the cells.
+4. If one of the annotation is not correct, the annotations and the different blobs will be displayed, as well as the path to the measurement of interest. You need to change the annotation file, press one key, and re-process, until the annotations are correct.
+5. The results will be saved in the ```results``` folder, with the following architecture:
 ```
 └── results
     ├── configuration_1
@@ -126,7 +128,7 @@ The ROIs should be numbered, as described above (ROI_1, ROI_2, ...). The number 
             ├── depolarization_prism.xlsx
             └── retardance_prism.xlsx
 ``` 
-4. Generate the figures by copy-pasting the prism files in the ```prism_files``` folder in the Prism documents.
+6. Generate the figures by copy-pasting the prism files in the ```prism_files``` folder in the Prism documents.
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
