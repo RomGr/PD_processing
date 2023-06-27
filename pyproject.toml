@@ -14,7 +14,7 @@ authors = [
     { email = "romain.gros@unibe.ch", name = "Romain Gros" },
 ]
 dynamic = ["version"]
-dependencies = ["numpy", "matplotlib"]
+dependencies = ["numpy", "matplotlib", "tqdm", "pandas"]
 
 [tool.hatch.version]
 path = "src/penetration_depth/__init__.py"
