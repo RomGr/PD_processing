@@ -42,14 +42,14 @@ def check_the_annotations(to_clean: list):
             else:
                 incorrect = False
                 
-def load_data(path_data, measurements_types, wavelength, parameters_save):
+def load_data(path_data, measurements_types, wavelength, parameters_save, iq_size: int = 95):
     data_measurement = {}
     data_to_clean = {}
     for measurements_type in tqdm(measurements_types):
         nothing_to_clean = False
         while not nothing_to_clean:
             data_measurement[measurements_type], data_to_clean[measurements_type] = process_one_measurement(path_data, measurements_type, 
-                                                                                                            wavelength, parameters_save, Flag = False)
+                                                                                            wavelength, parameters_save, Flag = False, iq_size = iq_size)
             if len(data_to_clean[measurements_type]) == 0:
                 nothing_to_clean = True
             else:
@@ -96,7 +96,7 @@ def reorganize_data(data):
             data_reorganized[idx][parameter] = val
     return data_reorganized
     
-def process_one_measurement(path_data: str, measurements_type: str, wavelength: str, parameters_save, Flag: bool = False):
+def process_one_measurement(path_data: str, measurements_type: str, wavelength: str, parameters_save, Flag: bool = False, iq_size: int = 95):
     """Process one measurement type."""
     path_data, results_path = get_params(path_data, measurements_type, wavelength)
     check_input_parameters(measurements_type, wavelength)
@@ -105,27 +105,23 @@ def process_one_measurement(path_data: str, measurements_type: str, wavelength: 
     paths, filename_mask, _ = find_all_folders(path_data, measurements_type)
     check_annotation(paths, measurements_type, filename_mask)
 
-    # get the data for the ROIs and generate the single figures
-    
-    data, data_to_clean = get_data(paths, filename_mask, wavelength, Flag = Flag)
-    
+    data, data_to_clean = get_data(paths, filename_mask, wavelength, Flag = Flag, iq_size = iq_size)
     save_raw_data(data, results_path, parameters_save, measurements_type)
     return data, data_to_clean
 
-def generate_plots(path_data, data, measurements_type, wavelength, metric: str = 'mean', Flag: bool = False):
-    path_data, results_path = get_params(path_data, measurements_type, wavelength)
-    paths, _, match_sequence = find_all_folders(path_data, measurements_type)
-    generate_histogram(data, results_path, match_sequence, Flag = Flag)
+def generate_plots(path_data, data, measurements_types, wavelength, metric: str = 'mean', Flag: bool = False):
+    for measurements_type in tqdm(measurements_types):
+        path_data, results_path = get_params(path_data, measurements_type, wavelength)
+        paths, _, match_sequence = find_all_folders(path_data, measurements_type)
+        generate_histogram(data[measurements_type], results_path, match_sequence, Flag = Flag)
     
-    
-    
-    thicknesses = get_x_thicnkesses(data, measurements_type)
-    _, parameters, parameters_std = get_plot_parameters(thicknesses, data, metric)
-    parameters, parameters_std = get_df(parameters), get_df(parameters_std)
-    save_dfs(parameters, results_path)
-    save_dfs(parameters_std, results_path, std = True)
-    
-    overimposed_img.save_the_imgs(paths, results_path, wavelength, Flag = Flag)
+        thicknesses = get_x_thicnkesses(data[measurements_type], measurements_type)
+        _, parameters, parameters_std = get_plot_parameters(thicknesses, data[measurements_type], metric)
+        parameters, parameters_std = get_df(parameters), get_df(parameters_std)
+        save_dfs(parameters, results_path)
+        save_dfs(parameters_std, results_path, std = True)
+        
+        overimposed_img.save_the_imgs(paths, results_path, wavelength, Flag = Flag)
     return results_path
     
 def get_match_sequence(measurements_type: str):
@@ -214,7 +210,7 @@ def check_annotation(paths: list, measurements_type: str, filename_mask: str):
             raise ValueError('The folder {} has not been correctly annotated'.format(folder))
         
         
-def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = False):
+def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = False, iq_size: int = 95):
     # -----------------------------------------------------------
     # gather the data for each of the folder, calls the function used to generate the histogram for each file
     # -----------------------------------------------------------
@@ -222,17 +218,23 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
     data_to_curate = []
     if Flag:
         for path in tqdm(paths):
-            dat = create_histogram(path, filename_mask, wavelength)
-            if type(dat) == tuple:
-                data_to_curate.append(dat)
-            else: 
-                data = reorganize_data(dat)  
-                for idx, dat in data.items():
-                    data_combined[path + f'_ROI_' + str(idx)] = dat
+            try:
+                dat = create_histogram(path, filename_mask, wavelength, iq_size = iq_size)
+                if type(dat) == tuple:
+                    data_to_curate.append(dat)
+                else: 
+                    data = reorganize_data(dat) 
+                    for idx, dat in data.items():
+                        data_combined[path + f'_ROI_' + str(idx)] = dat
+            except FileNotFoundError :
+                if wavelength != '550nm' and wavelength != '650nm':
+                    pass
+                else:
+                    traceback.print_exc()
     else:
         for path in paths:
             try:
-                dat = create_histogram(path, filename_mask, wavelength)
+                dat = create_histogram(path, filename_mask, wavelength, iq_size = iq_size)
                 if type(dat) == tuple:
                     data_to_curate.append(dat)
                 else: 
@@ -297,7 +299,7 @@ def save_raw_data(data, results_path, parameters_save: dict, measurements_type: 
                 pickle.dump(vals[parameter][-1], handle, protocol=pickle.HIGHEST_PROTOCOL)
                 
     
-def create_histogram(path: str, filename_mask: str, wavelength: str):
+def create_histogram(path: str, filename_mask: str, wavelength: str, iq_size: int = 95):
     # -----------------------------------------------------------
     # extract the data from the ROI(s) for the different parameters and calls the function used to 
     # compute the relevant metrics (mean, stdev and maximum) for each of the parameters. takes into
@@ -318,7 +320,7 @@ def create_histogram(path: str, filename_mask: str, wavelength: str):
         return path, filename_mask, wavelength
 
     MM = np.load(os.path.join(path, 'polarimetry', wavelength, 'MM.npz'))
-    ROI_values = get_area_of_interest_values(MM, mask_combined)
+    ROI_values = get_area_of_interest_values(MM, mask_combined, iq_size = iq_size)
     
     return ROI_values
 
@@ -364,8 +366,7 @@ def get_area_of_interest_values(MM, image_array, iq_size = 95):
     retardance = get_area_of_interest(linear_retardance_dict, parameters['retardance'])
     diattenua = get_area_of_interest(diattenuation_dict, parameters['diattenuation'])
     depol = get_area_of_interest(depolarization_dict, parameters['depolarization'])
-    azi = get_area_of_interest(azimuth_dict, parameters['azimuth'], 'azimuth', iq_size = iq_size)
-    
+    azi = get_area_of_interest(azimuth_dict, parameters['azimuth'], 'azimuth', iq_size = iq_size)    
     return {'retardance': retardance, 'diattenuation': diattenua, 'azimuth': azi, 'depolarization': depol}
 
 def get_area_of_interest(parameter_dict: list, param: dict, parameter: str = '', iq_size: int = 95):
@@ -382,16 +383,18 @@ def get_area_of_interest(parameter_dict: list, param: dict, parameter: str = '',
         if parameter == 'azimuth':
             azimuth_centered = []
             circstd_lst = scipy.stats.circstd(listed, high = 180)
+
             for az in listed:
                 azimuth_centered.append((az - circstd_lst + 90)%180)
             
             diff = (100-iq_size)/100
-            inter_quantile_90 = np.quantile(azimuth_centered, 1-diff) - np.quantile(azimuth_centered, diff)
-            mean = inter_quantile_90
+            mean = np.abs(np.quantile(azimuth_centered, 1-diff) - np.quantile(azimuth_centered, diff))
+            median = mean
             stdev = scipy.stats.circstd(listed, high = 180)
-            
+        
         else:
             mean = np.mean(listed)
+            median = np.median(listed)
             stdev = np.std(listed)
         
         bins = np.linspace(param['cbar_min'], param['cbar_max'], num = 100 )# param['n_bins'])
@@ -400,7 +403,7 @@ def get_area_of_interest(parameter_dict: list, param: dict, parameter: str = '',
         arr = data[0]
         max_idx = np.where(arr == np.amax(arr))[0][0]
         maximum = data[1][max_idx]
-        results_dict[idx] = [mean, stdev, maximum, listed]
+        results_dict[idx] = [mean, stdev, maximum, median, listed]
     
     return results_dict
 
@@ -547,10 +550,13 @@ def get_plot_parameters(thicknesses: dict, data: dict, metric: str = 'mean'):
     # return the data that will be used to plot the parameters (combined) - orders the data using the thicknesses
     # as a reference (thickness should be increasing)
     # -----------------------------------------------------------    
+    idx_azimuth = 0
     if metric == 'mean':
-        idx = 2
-    elif metric == 'max':
         idx = 0
+    elif metric == 'max':
+        idx = 2
+    elif metric == 'median':
+        idx = 3
     else:
         raise NotImplementedError
     
@@ -567,7 +573,10 @@ def get_plot_parameters(thicknesses: dict, data: dict, metric: str = 'mean'):
     for path, thickness in thicknesses.items():
         x.append(thickness)
         for parameter, ROI in data[path].items():
-            parameters[thickness][parameter].append(ROI[idx])
+            if parameter == 'azimuth':
+                parameters[thickness][parameter].append(ROI[idx_azimuth])
+            else:
+                parameters[thickness][parameter].append(ROI[idx])
             parameters_std[thickness][parameter].append(ROI[1])
          
     return x, parameters, parameters_std
@@ -682,9 +691,8 @@ def get_min_interval(listed, proportion = 0.90):
     else:
         return min(d)
     
-def load_raw_data_azimuth(results_path, data: dict):
+def load_raw_data_azimuth(results_path, data: dict, proportion_azimuth_values: float = 0.80):
     azimuth_results = []
-    
     data_processed = []
     for key in data.keys():
         data_processed.append(key.split('\\')[-1] +'.pickle')
@@ -695,10 +703,19 @@ def load_raw_data_azimuth(results_path, data: dict):
                 with open(os.path.join(results_path, 'raw_data', 'azimuth', str(thickness), file), 'rb') as handle:
                     azimuth = pickle.load(handle)
                     azimuth = (azimuth - np.mean(azimuth) + 90) % 180
-                    azimuth_results.append(get_min_interval(azimuth, proportion = 0.80))
+                    azimuth_results.append(get_min_interval(azimuth, proportion = proportion_azimuth_values))
     return azimuth_results
 
-def create_output_pickle(data: dict, parameters: list, path_data, measurements_type, wavelength):
+
+def create_output_pickle_master(data_measurement, measurements_types, parameters, path_data, wavelength, proportion_azimuth_values: float = 0.80):
+    combined_data_per_thickness = {}
+    for measurements_type in tqdm(measurements_types):
+        combined_data_per_thickness[measurements_type] = create_output_pickle(data_measurement[measurements_type], parameters, path_data, 
+                                                                measurements_type, wavelength, proportion_azimuth_values = proportion_azimuth_values)
+    return combined_data_per_thickness
+
+
+def create_output_pickle(data: dict, parameters: list, path_data, measurements_type, wavelength, proportion_azimuth_values: float = 0.80):
     path_data, results_path = get_params(path_data, measurements_type, wavelength)
     data_folders = os.listdir(os.path.join(results_path, 'excel'))
     data_combined = {}
@@ -716,11 +733,11 @@ def create_output_pickle(data: dict, parameters: list, path_data, measurements_t
     all_measurements = pd.concat(all_measurements, axis=1, ignore_index=False).T.drop_duplicates().T
     all_measurements_std = pd.concat(all_measurements_std, axis=1, ignore_index=False).T.drop_duplicates().T
     
-    all_measurements['azimuth_iv'] = load_raw_data_azimuth(results_path, data)
+    all_measurements['azimuth_pr'] = load_raw_data_azimuth(results_path, data, proportion_azimuth_values)
+    all_measurements['azimuth_iq'] = all_measurements['azimuth']
     all_measurements['azimuth_sd'] = all_measurements_std['azimuth']
     
     combined_data = {}
-    thickness = all_measurements['thickness']
     for param in parameters:
         combined_data[param] = all_measurements[['thickness', param]]
         
