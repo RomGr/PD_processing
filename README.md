@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/pypi/l/penetration_depth.svg?color=green)](https://github.com/RomGr/penetration_depth/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/penetration_depth.svg?color=green)](https://pypi.org/project/penetration_depth)
 [![Python Version](https://img.shields.io/pypi/pyversions/penetration_depth.svg?color=green)](https://python.org)
-[![CI](https://github.com/RomGr/penetration_depth/actions/workflows/ci.yml/badge.svg)](https://github.com/RomGr/penetration_depth/actions/workflows/ci.yml)
+[![CI](https://github.com/RomGr/penetration_depth/actions/workflows/ci.yml/badge.svg)](https://github.com/RomGr/PD_processing/actions/workflows/ci.yml)
 
 <!-- PROJECT LOGO -->
 <br />
@@ -53,6 +53,7 @@
         └── ROI_3.tif
 ```  
 The ROIs should be numbered, as described above (ROI_1, ROI_2, ...). The number after the ROI should corresponds to the one that will be present in the different results files generated afterwards.
+
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
