@@ -19,6 +19,21 @@ from penetration_depth.helpers import load_plot_parameters, load_parameter_maps
 from penetration_depth import overimposed_img
 
     
+def process_PD(path_data, measurements_types, parameters_save, wavelengths, parameters, iq_size: int = 90, metric: str = "median", Flag: bool = False):
+    proportion_azimuth_values = 1 - ((100 - iq_size) * 2)/100
+    assert proportion_azimuth_values > 0
+    
+    for wavelength in wavelengths:
+        print('Processing: ' + wavelength + '...')
+        data_measurement, _ = load_data(path_data, measurements_types, wavelength, parameters_save,
+                                                             Flag = Flag, iq_size = iq_size)
+        _ = generate_plots(path_data, data_measurement, measurements_types, wavelength, metric = metric,
+                                                        Flag = Flag)
+        _ = create_output_pickle_master(data_measurement, measurements_types, parameters, 
+                                        path_data, wavelength, proportion_azimuth_values = proportion_azimuth_values, Flag = Flag)
+        save_data_prism(measurements_types, path_data, wavelength, parameters)
+        print('Processed: ' + wavelength + '\n')
+        
 def check_the_annotations(to_clean: list):
     for clean in to_clean:
         incorrect = True
@@ -52,10 +67,11 @@ def check_the_annotations(to_clean: list):
             else:
                 incorrect = False
                 
-def load_data(path_data, measurements_types, wavelength, parameters_save, iq_size: int = 95):
+def load_data(path_data, measurements_types, wavelength, parameters_save, iq_size: int = 95, Flag: bool = False):
     data_measurement = {}
     data_to_clean = {}
-    for measurements_type in tqdm(measurements_types):
+
+    for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
         nothing_to_clean = False
         while not nothing_to_clean:
             data_measurement[measurements_type], data_to_clean[measurements_type] = process_one_measurement(path_data, measurements_type, 
@@ -120,7 +136,7 @@ def process_one_measurement(path_data: str, measurements_type: str, wavelength: 
     return data, data_to_clean
 
 def generate_plots(path_data, data, measurements_types, wavelength, metric: str = 'mean', Flag: bool = False):
-    for measurements_type in tqdm(measurements_types):
+    for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
         path_data_folder, results_path = get_params(path_data, measurements_type, wavelength)
         paths, _, match_sequence = find_all_folders(path_data_folder, measurements_type)
         generate_histogram(data[measurements_type], results_path, match_sequence, Flag = Flag)
@@ -228,7 +244,7 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
     data_combined = {}
     data_to_curate = []
     if Flag:
-        for path in tqdm(paths):
+        for path in (tqdm(paths) if Flag else paths):
             try:
                 dat = create_histogram(path, filename_mask, wavelength, iq_size = iq_size)
                 if type(dat) == tuple:
@@ -425,12 +441,8 @@ def get_area_of_interest(parameter_dict: list, param: dict, parameter: str = '',
 def generate_histogram(data: dict, results_path: str, match_sequence: str, Flag: bool = False):
     
     figures = []
-    if Flag:
-        for path, vals in tqdm(data.items(), total = len(data)):
-            figures.append(generate_histogram_master(vals, path, results_path, match_sequence))
-    else:
-        for path, vals in data.items():
-            figures.append(generate_histogram_master(vals, path, results_path, match_sequence))
+    for path, vals in (tqdm(data.items(), total = len(data)) if Flag else data.items()):
+        figures.append(generate_histogram_master(vals, path, results_path, match_sequence))
         
         
     
@@ -721,9 +733,9 @@ def load_raw_data_azimuth(results_path, data: dict, proportion_azimuth_values: f
     return azimuth_results
 
 
-def create_output_pickle_master(data_measurement, measurements_types, parameters, path_data, wavelength, proportion_azimuth_values: float = 0.80):
+def create_output_pickle_master(data_measurement, measurements_types, parameters, path_data, wavelength, proportion_azimuth_values: float = 0.80, Flag: bool = False):
     combined_data_per_thickness = {}
-    for measurements_type in tqdm(measurements_types):
+    for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
         combined_data_per_thickness[measurements_type] = create_output_pickle(data_measurement[measurements_type], parameters, path_data, 
                                                                 measurements_type, wavelength, proportion_azimuth_values = proportion_azimuth_values)
     return combined_data_per_thickness
