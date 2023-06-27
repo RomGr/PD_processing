@@ -38,7 +38,7 @@ def check_the_annotations(to_clean: list):
     for clean in to_clean:
         incorrect = True
         while incorrect:
-            path, filename_mask, _ = clean
+            path, _, _ = clean
             imgs_split = []
             annotation_folder = os.path.join(path, 'annotation')
             for annotation in os.listdir(annotation_folder):
