@@ -1,0 +1,5 @@
+{"0_overimposition": ["overimposed", "-0-\\d+um"], 
+"90_overimposition": ["overimposed", "-90-\\d+um"], 
+"splitted": ["overimposed", "split-\\d+um"], 
+"100+x": ["overimposed", "-100-\\d+um"], 
+"45_overimposition": ["overimposed", "-45-\\d+um"]}
