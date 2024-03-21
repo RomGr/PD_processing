@@ -1,1 +1,2 @@
-{"depolarization": "totP", "retardance": "linR", "azimuth": "azimuth", "diattenuation": "totD"}
+{"depolarization": "totP", "retardance": "linR", "azimuth": "azimuth", "diattenuation": "totD", 
+"azimuth_local_var": "azimuth_local_var"}

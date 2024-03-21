@@ -9,7 +9,7 @@ from collections import defaultdict
 from penetration_depth.mask_analysis import get_params
 
 def create_output_pickle_master(data_measurement: dict, measurements_types: list, parameters: list, path_data: str, wavelength: str, 
-                                proportion_azimuth_values: float = 0.80, Flag: bool = False):
+                                proportion_azimuth_values: float = 0.80, Flag: bool = False, CX_overimposed: bool = False):
     """ -----------------------------------------------------------
     # create_output_pickle_master is the master function calling create_output_pickle for each measurements type
     #
@@ -27,12 +27,21 @@ def create_output_pickle_master(data_measurement: dict, measurements_types: list
     ----------------------------------------------------------- """
     combined_data_per_thickness = {}
     for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
-        combined_data_per_thickness[measurements_type] = create_output_pickle(data_measurement[measurements_type], parameters, path_data, 
-                                                                measurements_type, wavelength, proportion_azimuth_values = proportion_azimuth_values)
+        if CX_overimposed:
+            key = tuple(measurements_type)
+            dat = data_measurement[key]
+        else:
+            key = measurements_type
+            dat = data_measurement[key]
+        
+        combined_data_per_thickness[key] = create_output_pickle(dat, parameters, path_data, 
+                                                                measurements_type, wavelength, proportion_azimuth_values = proportion_azimuth_values,
+                                                                CX_overimposed = CX_overimposed)
     return combined_data_per_thickness
 
 
-def create_output_pickle(data: dict, parameters: list, path_data: str, measurements_type: str, wavelength: str, proportion_azimuth_values: float = 0.80):
+def create_output_pickle(data: dict, parameters: list, path_data: str, measurements_type: str, wavelength: str, proportion_azimuth_values: float = 0.80,
+                         CX_overimposed: bool = False):
     """ -----------------------------------------------------------
     # creates a dictionary containing the data for each parameter and for each thickness
     #
@@ -47,13 +56,13 @@ def create_output_pickle(data: dict, parameters: list, path_data: str, measureme
     # Returns:
     #   combined_data_per_thickness (dict): dictionary containing the data for each parameter and for each thickness
     ----------------------------------------------------------- """
-    path_data, results_path = get_params(path_data, measurements_type, wavelength)
+    path_data, results_path = get_params(path_data, measurements_type, wavelength, CX_overimposed = CX_overimposed)
     data_folders = os.listdir(os.path.join(results_path, 'excel'))
     data_combined = {}
     for data_folder in data_folders:
         df = pd.read_excel(os.path.join(results_path, 'excel', data_folder))
         data_combined[data_folder.split('_data')[0]] = df.drop(['Unnamed: 0'], axis = 1)
-        
+    
     all_measurements = []
     all_measurements_std = []
     for measurement, values in data_combined.items():
@@ -65,6 +74,7 @@ def create_output_pickle(data: dict, parameters: list, path_data: str, measureme
     all_measurements = pd.concat(all_measurements, axis=1, ignore_index=False).T.drop_duplicates().T
     all_measurements_std = pd.concat(all_measurements_std, axis=1, ignore_index=False).T.drop_duplicates().T
     
+    print('here')
     # save the different metrics used for the azimuth
     all_measurements['azimuth_pr'] = load_raw_data_azimuth(results_path, data, proportion_azimuth_values)
     all_measurements['azimuth_iq'] = all_measurements['azimuth']
@@ -91,6 +101,7 @@ def create_output_pickle(data: dict, parameters: list, path_data: str, measureme
     with open(os.path.join(results_path, 'combined_data_thickness.pickle'), 'wb') as handle:
         pickle.dump(combined_data_per_thickness, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
+    print(combined_data_per_thickness.keys())
     return combined_data_per_thickness
 
 

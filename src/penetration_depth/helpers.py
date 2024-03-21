@@ -41,7 +41,7 @@ def load_parameter_maps():
     return load_json(os.path.join(dir_path, 'data', 'parameters_map.json'))
 
 
-def load_match_sequence(measurement_type: str):
+def load_match_sequence(measurement_type: str, CX_overimposed: bool = False):
     """
     load and returns the match sequence and filename mask for the given measurement type
     
@@ -52,7 +52,10 @@ def load_match_sequence(measurement_type: str):
     """
     dir_path = os.path.dirname(os.path.realpath(__file__))
     data = load_json(os.path.join(dir_path, 'data', 'match_sequences.json'))
-    return data[measurement_type]
+    if CX_overimposed:
+        return data[measurement_type[0]]
+    else:
+        return data[measurement_type]
 
 def get_measurement_numbers(measurement_type: str):
     """

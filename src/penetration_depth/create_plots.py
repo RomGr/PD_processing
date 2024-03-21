@@ -11,14 +11,18 @@ from penetration_depth.helpers import load_parameter_maps, load_match_sequence
 from penetration_depth.overimposed_img import save_the_imgs
 
 
-def generate_plots(path_data, data, measurements_types, wavelength, metric: str = 'mean', Flag: bool = False):
+def generate_plots(path_data, data, measurements_types, wavelength, metric: str = 'mean', Flag: bool = False, CX_overimposed: bool = False):
     for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
-        path_data_folder, results_path = get_params(path_data, measurements_type, wavelength)
-        paths, _, match_sequence = find_all_folders(path_data_folder, measurements_type)
-        generate_histogram_master(data[measurements_type], results_path, match_sequence, Flag = Flag)
+        path_data_folder, results_path = get_params(path_data, measurements_type, wavelength, CX_overimposed = CX_overimposed)
+        paths, _, match_sequence = find_all_folders(path_data_folder, measurements_type, CX_overimposed = CX_overimposed)
+        if CX_overimposed:
+            dat = data[tuple(measurements_type)]
+        else:
+            dat = data[measurements_type]
+        generate_histogram_master(dat, results_path, match_sequence, Flag = Flag)
     
-        thicknesses = get_x_thicnkesses(data[measurements_type], measurements_type)
-        _, parameters, parameters_std = get_plot_parameters(thicknesses, data[measurements_type], metric)
+        thicknesses = get_x_thicnkesses(dat, measurements_type, CX_overimposed = CX_overimposed)
+        _, parameters, parameters_std = get_plot_parameters(thicknesses, dat, metric)
         parameters, parameters_std = get_df(parameters), get_df(parameters_std)
         save_dfs(parameters, results_path)
         save_dfs(parameters_std, results_path, std = True)
@@ -211,7 +215,7 @@ def generate_azimuth_histogram(data: dict, path_save_azimuth: str):
     plt.close()
     
     
-def get_x_thicnkesses(data: dict, measurements_type: str):
+def get_x_thicnkesses(data: dict, measurements_type: str, CX_overimposed: bool = False):
     """ -----------------------------------------------------------
     # returs the thicknesses indicated in the folder names
     #
@@ -219,7 +223,7 @@ def get_x_thicnkesses(data: dict, measurements_type: str):
     #   data (dict): dictionary containing the data
     #   measurements_type (str): type of the measurement
     ----------------------------------------------------------- """
-    _, match_sequence = load_match_sequence(measurements_type)
+    _, match_sequence = load_match_sequence(measurements_type, CX_overimposed = CX_overimposed)
     thicknesses = {}
     paths = list(data.keys())
     for path in paths:

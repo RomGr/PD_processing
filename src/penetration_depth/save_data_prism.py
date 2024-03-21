@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 import copy
 
-def save_data_prism(measurements_types: list, path_data: str, wavelength: str, parameters: list):
+def save_data_prism(measurements_types: list, path_data: str, wavelength: str, parameters: list, CX_overimposed: bool = False):
     """ -----------------------------------------------------------
     # save_data_prism is the master function saving the data to plug them in the prism software
     #
@@ -13,7 +13,7 @@ def save_data_prism(measurements_types: list, path_data: str, wavelength: str, p
     #   wavelength (str): wavelength of the measurements
     #   parameters (list): list of the parameters of interest
     ----------------------------------------------------------- """
-    data_parameter, data_parameter_complete_thickness = get_data_df(measurements_types, path_data, wavelength, parameters)
+    data_parameter, data_parameter_complete_thickness = get_data_df(measurements_types, path_data, wavelength, parameters, CX_overimposed = CX_overimposed)
     results_path = os.path.join(path_data, 'results', 'prism_files')
     try:
         os.mkdir(results_path)
@@ -46,7 +46,7 @@ def save_data_prism(measurements_types: list, path_data: str, wavelength: str, p
         concat.to_excel(results_path_excel)
     
     
-def get_data_df(measurements_types: list, paths_data: str, wavelength, parameters):
+def get_data_df(measurements_types: list, paths_data: str, wavelength, parameters, CX_overimposed: bool = False):
     """ -----------------------------------------------------------
     # get the data as a dict of dataframes that can be saved and later plugged in the prism software
     #
@@ -58,10 +58,16 @@ def get_data_df(measurements_types: list, paths_data: str, wavelength, parameter
     ----------------------------------------------------------- """
     data_thickness = {}
     for measurements_type in measurements_types:
-        path = os.path.join(paths_data, 'results', measurements_type, wavelength, 'combined_data_thickness.pickle')
+        if CX_overimposed:
+            path = os.path.join(paths_data, 'results', measurements_type[0] + '_' + measurements_type[1], wavelength, 'combined_data_thickness.pickle')
+        else:
+            path = os.path.join(paths_data, 'results', measurements_type, wavelength, 'combined_data_thickness.pickle')
         with open(path, 'rb') as handle:
             data = pickle.load(handle)
-        data_thickness[measurements_type] = data
+        if CX_overimposed:
+            data_thickness[tuple(measurements_type)] = data
+        else:
+            data_thickness[measurements_type] = data
 
     data_df = {}
     for measurements_type, vals in data_thickness.items():
@@ -78,8 +84,12 @@ def get_data_df(measurements_types: list, paths_data: str, wavelength, parameter
         data_param = {}
         data_param_complete_thickness = {}
         for measurements_type in measurements_types:
-            data_param[measurements_type] = data_df[measurements_type][parameter]
-            new_data_df = copy.deepcopy(data_df[measurements_type][parameter])
+            if CX_overimposed:
+                data_param[tuple(measurements_type)] = data_df[tuple(measurements_type)][parameter]
+                new_data_df = copy.deepcopy(data_df[tuple(measurements_type)][parameter])
+            else:
+                data_param[measurements_type] = data_df[measurements_type][parameter]
+                new_data_df = copy.deepcopy(data_df[measurements_type][parameter])
             
             # add the value of the bottom layer thickness
             if measurements_type == '0_overimposition' or measurements_type == '45_overimposition' or measurements_type == '90_overimposition':
@@ -87,9 +97,13 @@ def get_data_df(measurements_types: list, paths_data: str, wavelength, parameter
             elif measurements_type == '100+x':
                 new_data_df.index = 100 + new_data_df.index
             else:
-                assert measurements_type == 'splitted'
+                assert measurements_type == 'splitted' or CX_overimposed
                 new_data_df.index = new_data_df.index
-            data_param_complete_thickness[measurements_type] = new_data_df
+                
+            if CX_overimposed:
+                data_param_complete_thickness[tuple(measurements_type)] = new_data_df
+            else:
+                data_param_complete_thickness[measurements_type] = new_data_df
             
         data_parameter[parameter] = data_param
         data_parameter_complete_thickness[parameter] = data_param_complete_thickness
