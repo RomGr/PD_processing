@@ -73,8 +73,7 @@ def create_output_pickle(data: dict, parameters: list, path_data: str, measureme
 
     all_measurements = pd.concat(all_measurements, axis=1, ignore_index=False).T.drop_duplicates().T
     all_measurements_std = pd.concat(all_measurements_std, axis=1, ignore_index=False).T.drop_duplicates().T
-    
-    print('here')
+
     # save the different metrics used for the azimuth
     all_measurements['azimuth_pr'] = load_raw_data_azimuth(results_path, data, proportion_azimuth_values)
     all_measurements['azimuth_iq'] = all_measurements['azimuth']
