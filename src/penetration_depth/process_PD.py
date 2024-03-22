@@ -49,6 +49,8 @@ def process_PD(path_data: str, measurements_types: list, wavelengths: list, para
         # save the data in a "prism" format
         save_data_prism(measurements_types, path_data, wavelength, parameters, CX_overimposed = CX_overimposed)
         print('Processed: ' + wavelength + '\n')
+    
+    return data_measurement
         
     
 def move_annotations(path_data_orig):
@@ -61,10 +63,16 @@ def move_annotations(path_data_orig):
             for file in os.listdir(path_annotation_GM):
                 old_name = os.path.join(path_annotation_GM, file)
                 new_name = old_name.replace('CC_GM', 'measurements\90_overimposition').replace('.tif', '_GM.tif')
-                shutil.copy(old_name, new_name)
+                if '_5' in file:
+                    pass
+                else:
+                    shutil.copy(old_name, new_name)
 
             path_annotation_WM = path_annotation.replace('measurements\90_overimposition', 'CC_WM')
             for file in os.listdir(path_annotation_WM):
                 old_name = os.path.join(path_annotation_WM, file)
                 new_name = old_name.replace('CC_WM', 'measurements\90_overimposition').replace('.tif', '_WM.tif')
-                shutil.copy(old_name, new_name)
+                if '_3' in file:
+                    pass
+                else:
+                    shutil.copy(old_name, new_name)
