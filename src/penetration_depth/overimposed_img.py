@@ -2,10 +2,11 @@ from PIL import Image
 import numpy as np
 import os
 import traceback
-
+import pickle
 from tqdm import tqdm
 
-def save_the_imgs(paths: list, results_path: str, wavelength: str, Flag: bool = False):
+def save_the_imgs(paths: list, results_path: str, wavelength: str, Flag: bool = False, CC_overimposed: bool = False,
+                  measurement_type = None):
     """ -----------------------------------------------------------
     # save_the_imgs is the master function calling save_img for each of the measurement folders
     #
@@ -17,7 +18,7 @@ def save_the_imgs(paths: list, results_path: str, wavelength: str, Flag: bool = 
     ----------------------------------------------------------- """
     for path in (tqdm(paths) if Flag else paths):
         try:
-            save_img(path, results_path, wavelength)
+            save_img(path, results_path, wavelength, CC_overimposed = CC_overimposed, measurement_type = measurement_type)
         except FileNotFoundError :
             if wavelength != '550nm' and wavelength != '650nm':
                 pass
@@ -25,7 +26,7 @@ def save_the_imgs(paths: list, results_path: str, wavelength: str, Flag: bool = 
                 traceback.print_exc()
                     
                     
-def save_img(path: str, results_path: str, wavelength: str):
+def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool = False, measurement_type = None):
     """ -----------------------------------------------------------
     # save_img is the master function calling generate_pixel_image for one measurement folder
     #
@@ -34,13 +35,22 @@ def save_img(path: str, results_path: str, wavelength: str):
     #   results_path (str): path to the results folder
     #   wavelength (str): wavelength of the measurement
     ----------------------------------------------------------- """
-    paths_masks = os.listdir(os.path.join(path, 'annotation'))
+    if CC_overimposed:
+        path_msk = os.path.join(path, 'annotation', 'small_ROIs')
+    else:
+        path_msk = os.path.join(path, 'annotation')
+    paths_masks = os.listdir(path_msk)
     path_masks_rel = []
     
     # get the annotation masks
     for p in paths_masks:
         if '.tif' in p:
-            path_masks_rel.append(os.path.join(path, 'annotation', p))
+            if measurement_type is not None:
+                if measurement_type[1] in p:
+                    path_masks_rel.append(os.path.join(path_msk, p))
+            else:
+                path_masks_rel.append(os.path.join(path_msk, p))
+
     try:
         os.mkdir(os.path.join(results_path, 'imgs'))
     except FileExistsError:
@@ -88,6 +98,7 @@ def generate_pixel_image(path_image: str, paths_masks: list, path_save: str, val
     for mask in masks:
         mask_combined += mask
     mask = mask_combined
+    
     
     to_add = []
     for idx_x, x in enumerate(imnp):

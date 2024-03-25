@@ -41,7 +41,7 @@ def load_parameter_maps():
     return load_json(os.path.join(dir_path, 'data', 'parameters_map.json'))
 
 
-def load_match_sequence(measurement_type: str, CX_overimposed: bool = False):
+def load_match_sequence(measurement_type: str, CX_overimposed: bool = False, CC_overimposed: bool = False):
     """
     load and returns the match sequence and filename mask for the given measurement type
     
@@ -52,12 +52,12 @@ def load_match_sequence(measurement_type: str, CX_overimposed: bool = False):
     """
     dir_path = os.path.dirname(os.path.realpath(__file__))
     data = load_json(os.path.join(dir_path, 'data', 'match_sequences.json'))
-    if CX_overimposed:
+    if CX_overimposed or CC_overimposed:
         return data[measurement_type[0]]
     else:
         return data[measurement_type]
 
-def get_measurement_numbers(measurement_type: str):
+def get_measurement_numbers(measurement_type: str, CC_overimposed: bool = False):
     """
     load and get the measurement numbers (i.e. number of ROIs) for the given measurement type
     
@@ -66,9 +66,12 @@ def get_measurement_numbers(measurement_type: str):
     measurement_type : str
         the measurement type
     """
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    data = load_json(os.path.join(dir_path, 'data', 'measurement_numbers.json'))
-    return data[measurement_type]
+    if CC_overimposed:
+        return 50
+    else:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        data = load_json(os.path.join(dir_path, 'data', 'measurement_numbers.json'))
+        return data[measurement_type]
 
 def load_parameters_save():
     """

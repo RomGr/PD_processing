@@ -21,7 +21,7 @@ from penetration_depth.check_annotations import check_the_annotations, get_blobs
         
         
 def load_data(path_data: str, measurements_types: list, wavelength: str, parameters_save: list, iq_size: int = 95, Flag: bool = False, 
-              CX_overimposed = False):
+              CX_overimposed = False, CC_overimposed: bool = False, small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # loads the data for each measurement type, save the raw data for the different ROIs and creates the overlay images
     #
@@ -41,20 +41,25 @@ def load_data(path_data: str, measurements_types: list, wavelength: str, paramet
 
     # iterate over the different measurement types
     for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
+        
         nothing_to_clean = False
         
+        print()
+        print(f"Loading data for {measurements_type}...")
+            
         # while there are some annotations to clean
         while not nothing_to_clean:
             
             # process the measurements
-            print(f"Processing {measurements_type}...")
-            if CX_overimposed:
+            if CX_overimposed or CC_overimposed:
                 key = tuple(measurements_type)
             else:
                 key = measurements_type
             data_measurement[key], data_to_clean = process_one_measurement(path_data, measurements_type, wavelength, 
                                                                                          parameters_save, Flag = False, iq_size = iq_size,
-                                                                                         CX_overimposed = CX_overimposed)
+                                                                                         CX_overimposed = CX_overimposed,
+                                                                                         CC_overimposed = CC_overimposed,
+                                                                                         small_ROIs = small_ROIs)
             
             # check if there are some annotations to clean
             if len(data_to_clean) == 0:
@@ -62,11 +67,14 @@ def load_data(path_data: str, measurements_types: list, wavelength: str, paramet
             else:
                 # if yes, clean them
                 check_the_annotations(data_to_clean)
+        
+        print(f"Data loaded for {measurements_type}...")
+        print()
     return data_measurement
 
 
 def process_one_measurement(path_data: str, measurements_type: str, wavelength: str, parameters_save: list, iq_size: int = 95, Flag: bool = False, 
-                            metric: str = "median", CX_overimposed: bool = False):
+                            metric: str = "median", CX_overimposed: bool = False, CC_overimposed: bool = False, small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # process the data for one measurement type
     #
@@ -83,22 +91,23 @@ def process_one_measurement(path_data: str, measurements_type: str, wavelength: 
     #   data (dict): dictionary containing the data for the measurement type
     #   data_to_clean (dict): dictionary containing the data to clean for the measurement type
     ----------------------------------------------------------- """
-    check_input_parameters(measurements_type, wavelength, metric, CX_overimposed = CX_overimposed)
-    path_data, results_path = get_params(path_data, measurements_type, wavelength, CX_overimposed = CX_overimposed)
+    check_input_parameters(measurements_type, wavelength, metric, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
+    path_data, results_path = get_params(path_data, measurements_type, wavelength, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
 
     # get the paths of all folders for the analysis
-    paths, filename_mask, _ = find_all_folders(path_data, measurements_type, CX_overimposed = CX_overimposed)
-    check_annotation(paths, measurements_type, filename_mask, CX_overimposed = CX_overimposed)
+    paths, filename_mask, _ = find_all_folders(path_data, measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
+    check_annotation(paths, measurements_type, filename_mask, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed, 
+                     small_ROIs = small_ROIs)
 
     data, data_to_clean = get_data(paths, filename_mask, wavelength, Flag = Flag, iq_size = iq_size, CX_overimposed = CX_overimposed, 
-                                   measurements_type = measurements_type)
+                                   CC_overimposed = CC_overimposed, small_ROIs = small_ROIs, measurements_type = measurements_type)
 
-    save_raw_data(data, results_path, parameters_save, measurements_type, CX_overimposed = CX_overimposed)
+    save_raw_data(data, results_path, parameters_save, measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
     
     return data, data_to_clean
 
 
-def check_input_parameters(measurements_type: str, wavelength: str, metric: str, CX_overimposed: bool = False):
+def check_input_parameters(measurements_type: str, wavelength: str, metric: str, CX_overimposed: bool = False, CC_overimposed: bool = False):
     """ -----------------------------------------------------------
     # check if the input parameters are correct
     #
@@ -107,7 +116,7 @@ def check_input_parameters(measurements_type: str, wavelength: str, metric: str,
     #   wavelength (str): wavelength of the data
     #   metric (str): metric to use to compute the statistics
     ----------------------------------------------------------- """
-    if CX_overimposed:
+    if CX_overimposed or CC_overimposed:
         assert measurements_type[0] in [r'0_overimposition', r'100+x', r'45_overimposition', r'90_overimposition', r'splitted']
         assert measurements_type[1] in [r'GM', r'WM']
     else:
@@ -116,7 +125,7 @@ def check_input_parameters(measurements_type: str, wavelength: str, metric: str,
     assert metric in ["median", "mean", "max"]
     
 
-def get_params(path_data: str, measurements: str, wavelength: str, CX_overimposed: bool = False):
+def get_params(path_data: str, measurements: str, wavelength: str, CX_overimposed: bool = False, CC_overimposed: bool = False):
     """ -----------------------------------------------------------
     # get the path to the data folder and the results folder
     #
@@ -129,7 +138,7 @@ def get_params(path_data: str, measurements: str, wavelength: str, CX_overimpose
     #   path_folder (str): path to the data folder
     #   results_path (str): path to the results folder
     ----------------------------------------------------------- """
-    if CX_overimposed:
+    if CX_overimposed or CC_overimposed:
         path_folder = os.path.join(path_data, measurements[0])
     else:
         path_folder = os.path.join(path_data, measurements)
@@ -140,7 +149,7 @@ def get_params(path_data: str, measurements: str, wavelength: str, CX_overimpose
     except FileExistsError:
         pass
     
-    if CX_overimposed:
+    if CX_overimposed or CC_overimposed:
         results_path = os.path.join(results_path, measurements[0] + '_' + measurements[1])
     else:
         results_path = os.path.join(results_path, measurements)
@@ -158,7 +167,7 @@ def get_params(path_data: str, measurements: str, wavelength: str, CX_overimpose
     return path_folder, results_path
 
 
-def find_all_folders(path_data: str, measurements_type: str, CX_overimposed: bool = False):
+def find_all_folders(path_data: str, measurements_type: str, CX_overimposed: bool = False, CC_overimposed: bool = False):
     """ -----------------------------------------------------------
     # find all the folders that corresponds to the measurements of interest based on the matching sequence
     #
@@ -171,7 +180,7 @@ def find_all_folders(path_data: str, measurements_type: str, CX_overimposed: boo
     #   filename_mask (str): name of the file used for the masks
     #   match_sequence (str): matching sequence used to find the folders of interest
     ----------------------------------------------------------- """
-    filename_mask, match_sequence = load_match_sequence(measurements_type, CX_overimposed = CX_overimposed)
+    filename_mask, match_sequence = load_match_sequence(measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
 
     paths = []
     # iterate over each result of the results folder
@@ -201,7 +210,8 @@ def should_add_folder(match_sequence: str, folder: str):
         return False
 
 
-def check_annotation(paths: list, measurements_type: str, filename_mask: str, CX_overimposed: bool = False):
+def check_annotation(paths: list, measurements_type: str, filename_mask: str, CX_overimposed: bool = False, CC_overimposed: bool = False,
+                     small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # check if all the images have been correctly annotated (i.e. contains the correct number of ROIs, otherwise, raise a warning) and rename the files
     #
@@ -213,7 +223,9 @@ def check_annotation(paths: list, measurements_type: str, filename_mask: str, CX
     # Returns:
     #   boolean: True if the folder should be added, False otherwise
     ----------------------------------------------------------- """
-    if CX_overimposed:
+    if small_ROIs:
+        numbers = get_measurement_numbers(measurements_type[0], small_ROIs)
+    elif CX_overimposed:
         numbers = get_measurement_numbers(measurements_type[0])
     else:
         numbers = get_measurement_numbers(measurements_type)
@@ -222,26 +234,40 @@ def check_annotation(paths: list, measurements_type: str, filename_mask: str, CX
     for folder in paths:
         annotated = False
         counter = 0
-        files = os.listdir(os.path.join(folder, 'annotation'))
+        if small_ROIs:
+            files = os.listdir(os.path.join(folder, 'annotation', 'small_ROIs'))
+        else:
+            files = os.listdir(os.path.join(folder, 'annotation'))
+            
         for f in files:
             if '.tif' in f:
-                old_name = os.path.join(folder, 'annotation', f)
-                new_name = os.path.join(folder, 'annotation', f.replace(filename_mask, 'ROI_'))
-                os.rename(old_name, new_name)
+                if not small_ROIs:
+                    old_name = os.path.join(folder, 'annotation', f)
+                    new_name = os.path.join(folder, 'annotation', f.replace(filename_mask, 'ROI_'))
+                    os.rename(old_name, new_name)
                 counter += 1
         
-        # check if the correct number of ROIs has been found            
-        for length in numbers:
-            if counter == length:
+        # check if the correct number of ROIs has been found  
+        if not small_ROIs:          
+            for length in numbers:
+                if counter == length:
+                    annotated = True
+        else:
+            if counter > numbers:
                 annotated = True
         
         # else raise a warning
-        if not annotated:
-            warnings.warn('The number of ROIs is not correct for the folder {}'.format(folder))
+        if not small_ROIs: 
+            if not annotated:
+                warnings.warn('The number of ROIs is not correct for the folder {}'.format(folder))
+        else:
+            if not annotated:
+                warnings.warn('The number of ROIs is not sufficient for the folder {}'.format(folder))
+            
 
 
 def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = False, iq_size: int = 95, CX_overimposed: bool = False,
-             measurements_type: str = None):
+             CC_overimposed: bool = False, measurements_type: str = None, small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # actually load the data, compute the statistics and return the results
     #
@@ -263,8 +289,8 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
     for path in (tqdm(paths) if Flag else paths):
         try:
             # load the data and compute the statistics
-            dat = get_statistics(path, filename_mask, wavelength, iq_size = iq_size, CX_overimposed = CX_overimposed,
-                                 measurements_type = measurements_type)
+            dat = get_statistics(path, filename_mask, wavelength, iq_size = iq_size, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed,
+                                 small_ROIs = small_ROIs, measurements_type = measurements_type)
             
             # if the data is a tuple, it means that there was a problem with it
             if type(dat) == tuple:
@@ -275,6 +301,7 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
                 for idx, dat in data.items():
                     data_combined[path + f'_ROI_' + str(idx)] = dat
         except FileNotFoundError :
+            traceback.print_exc()
             # if the wavelength is not 550nm or 650nm, there could be an issue as the data is not always present
             if wavelength != '550nm' and wavelength != '650nm':
                 pass
@@ -284,7 +311,8 @@ def get_data(paths: list, filename_mask: str, wavelength: str, Flag: bool = Fals
 
 
 def get_statistics(path: str, filename_mask: str, wavelength: str, iq_size: int = 95,
-                   measurements_type: str = None, CX_overimposed: bool = False):
+                   measurements_type: str = None, CX_overimposed: bool = False, CC_overimposed: bool = False,
+                   small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # load the data and compute the different statistical descriptors for one measurement folder
     #
@@ -300,7 +328,10 @@ def get_statistics(path: str, filename_mask: str, wavelength: str, iq_size: int 
     imgs_split = []
     
     # get all the annotations and check if they are not overlapping
-    annotation_folder = os.path.join(path, 'annotation')
+    if small_ROIs:
+        annotation_folder = os.path.join(path, 'annotation', 'small_ROIs')
+    else:
+        annotation_folder = os.path.join(path, 'annotation')
     for annotation in os.listdir(annotation_folder):
         if annotation.endswith('.tif'):
             if CX_overimposed:
@@ -308,6 +339,7 @@ def get_statistics(path: str, filename_mask: str, wavelength: str, iq_size: int 
                     imgs_split.append(os.path.join(annotation_folder, annotation))
             else:
                 imgs_split.append(os.path.join(annotation_folder, annotation))
+                
 
     # try to get the different blobs
     try:
@@ -353,7 +385,7 @@ def get_area_of_interest_values(MM: dict, mask_combined: np.array, iq_size: int 
                     pol_parameters_dict[key][pixel].append(pol_parameters[key][x][y])
     
     plt_parameters = load_plot_parameters()
-    
+        
     # select the pixels contained in the ROI(s)
     ROI_values = {}
     for key, _ in parameters.items():
@@ -448,7 +480,8 @@ def reorganize_data(data: dict):
     return data_reorganized
 
 
-def save_raw_data(data: dict, results_path: str, parameters_save: dict, measurements_type: str, CX_overimposed: bool = False):
+def save_raw_data(data: dict, results_path: str, parameters_save: dict, measurements_type: str, CX_overimposed: bool = False,
+                  CC_overimposed: bool = False):
     """ -----------------------------------------------------------
     # save the raw data for all parameters in the different ROIs
     #
@@ -458,7 +491,7 @@ def save_raw_data(data: dict, results_path: str, parameters_save: dict, measurem
     #   parameters_save (dict): dictionary containing the parameters to save
     #   measurements_type (str): type of the measurement
     ----------------------------------------------------------- """  
-    _, match_sequence = load_match_sequence(measurements_type, CX_overimposed = CX_overimposed)
+    _, match_sequence = load_match_sequence(measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
     results_path = os.path.join(results_path, 'raw_data')
     try:
         os.mkdir(results_path)

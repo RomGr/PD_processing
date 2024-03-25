@@ -39,8 +39,8 @@ def get_blobs(img_split: list, kernel_size: int = 5):
     ----------------------------------------------------------- """  
     imgs_splits = []
     for img in img_split:
-        imgs_splits.append(np.array(Image.open(img)))
-                
+        imgs_splits.append(np.array(Image.open(img)).astype(np.uint8))
+        
     mask_combined = np.zeros(imgs_splits[0].shape)
     mask_combined_blob = np.zeros(imgs_splits[0].shape)
     
