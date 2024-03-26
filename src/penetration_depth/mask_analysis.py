@@ -40,7 +40,7 @@ def load_data(path_data: str, measurements_types: list, wavelength: str, paramet
     data_measurement = {}
 
     # iterate over the different measurement types
-    for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
+    for measurements_type in measurements_types:
         
         nothing_to_clean = False
         
@@ -55,8 +55,9 @@ def load_data(path_data: str, measurements_types: list, wavelength: str, paramet
                 key = tuple(measurements_type)
             else:
                 key = measurements_type
+                
             data_measurement[key], data_to_clean = process_one_measurement(path_data, measurements_type, wavelength, 
-                                                                                         parameters_save, Flag = False, iq_size = iq_size,
+                                                                                         parameters_save, Flag = Flag, iq_size = iq_size,
                                                                                          CX_overimposed = CX_overimposed,
                                                                                          CC_overimposed = CC_overimposed,
                                                                                          small_ROIs = small_ROIs)
@@ -91,19 +92,33 @@ def process_one_measurement(path_data: str, measurements_type: str, wavelength: 
     #   data (dict): dictionary containing the data for the measurement type
     #   data_to_clean (dict): dictionary containing the data to clean for the measurement type
     ----------------------------------------------------------- """
+    if Flag:
+        print()
+        print(f"Checking the annotations for {measurements_type}...")
+        
     check_input_parameters(measurements_type, wavelength, metric, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
     path_data, results_path = get_params(path_data, measurements_type, wavelength, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
 
-    # get the paths of all folders for the analysis
     paths, filename_mask, _ = find_all_folders(path_data, measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
     check_annotation(paths, measurements_type, filename_mask, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed, 
                      small_ROIs = small_ROIs)
 
+    if Flag:
+        print(f"Data checked for {measurements_type}...")
+        print()
+        print(f"Loading the data for {measurements_type}...")
     data, data_to_clean = get_data(paths, filename_mask, wavelength, Flag = Flag, iq_size = iq_size, CX_overimposed = CX_overimposed, 
                                    CC_overimposed = CC_overimposed, small_ROIs = small_ROIs, measurements_type = measurements_type)
 
+    if Flag:
+        print(f"Data loaded for {measurements_type}...")
+        print()
+        print(f"Saving the raw data for {measurements_type}...")
     save_raw_data(data, results_path, parameters_save, measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
     
+    if Flag:
+        print(f"Raw data saved for {measurements_type}...")
+        print()
     return data, data_to_clean
 
 
@@ -471,7 +486,7 @@ def reorganize_data(data: dict):
     ----------------------------------------------------------- """  
     data_reorganized = {}
 
-    for idx in range(len(data['retardance'])):
+    for idx in range(0, len(data['retardance']) + 1):
         data_reorganized[idx + 1] = {}
 
     for parameter, values in data.items():
@@ -517,8 +532,11 @@ def save_raw_data(data: dict, results_path: str, parameters_save: dict, measurem
                 os.mkdir(data_path)
             except FileExistsError:
                 pass
-            with open(os.path.join(data_path, path.split('\\')[-1] + '.pickle'), 'wb') as handle:
-                pickle.dump(vals[parameter][-1], handle, protocol=pickle.HIGHEST_PROTOCOL)
+            try:
+                with open(os.path.join(data_path, path.split('\\')[-1] + '.pickle'), 'wb') as handle:
+                    pickle.dump(vals[parameter][-1], handle, protocol=pickle.HIGHEST_PROTOCOL)
+            except:
+                pass
 
 
 

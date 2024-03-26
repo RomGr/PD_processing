@@ -26,7 +26,7 @@ def create_output_pickle_master(data_measurement: dict, measurements_types: list
     #   combined_data_per_thickness (dict): dictionary containing the data for each parameter and for each thickness
     ----------------------------------------------------------- """
     combined_data_per_thickness = {}
-    for measurements_type in (tqdm(measurements_types) if Flag else measurements_types):
+    for measurements_type in measurements_types:
         print()
         print(f"Creating the output pickle file for {measurements_type}...")
 
@@ -83,7 +83,6 @@ def create_output_pickle(data: dict, parameters: list, path_data: str, measureme
     all_measurements_std = pd.concat(all_measurements_std, axis=1, ignore_index=False).T.drop_duplicates().T
 
     # save the different metrics used for the azimuth
-    all_measurements['azimuth_pr'] = load_raw_data_azimuth(results_path, data, proportion_azimuth_values)
     all_measurements['azimuth_iq'] = all_measurements['azimuth']
     all_measurements['azimuth_sd'] = all_measurements_std['azimuth']
     
@@ -111,8 +110,8 @@ def create_output_pickle(data: dict, parameters: list, path_data: str, measureme
     return combined_data_per_thickness
 
 
-def load_raw_data_azimuth(results_path: str, data: dict, proportion_azimuth_values: float = 0.80):
-    """ -----------------------------------------------------------
+"""def load_raw_data_azimuth(results_path: str, data: dict, proportion_azimuth_values: float = 0.80):
+    -----------------------------------------------------------
     # load_raw_data_azimuth allows to load the azimuth data and get the minimal interval containing proportion_azimuth_values of the data
     #
     # Parameters:
@@ -122,8 +121,7 @@ def load_raw_data_azimuth(results_path: str, data: dict, proportion_azimuth_valu
     # 
     # Returns:
     #   azimuth_results (list): list of the minimal intervals containing proportion_azimuth_values of the data
-    ----------------------------------------------------------- """
-    azimuth_results = []
+    ----------------------------------------------------------- 
     data_processed = []
     for key in data.keys():
         data_processed.append(key.split('\\')[-1] +'.pickle')
@@ -135,11 +133,11 @@ def load_raw_data_azimuth(results_path: str, data: dict, proportion_azimuth_valu
                     azimuth = pickle.load(handle)
                     azimuth = (azimuth - np.mean(azimuth) + 90) % 180
                     azimuth_results.append(get_min_interval(azimuth, proportion = proportion_azimuth_values))
-    return azimuth_results
+    return azimuth_results"""
 
 
-def get_min_interval(data: list, proportion: float = 0.90):
-    """ -----------------------------------------------------------
+"""def get_min_interval(data: list, proportion: float = 0.90):
+    -----------------------------------------------------------
     # gets the smallest interval containing a proportion of the data
     #
     # Parameters:
@@ -148,7 +146,7 @@ def get_min_interval(data: list, proportion: float = 0.90):
     # 
     # Returns:
     #   min(d) (float): smallest interval containing a proportion of the data
-    ----------------------------------------------------------- """
+    -----------------------------------------------------------
     cc = data
     cc.sort()
     n = int(len(cc)*proportion)
@@ -161,4 +159,4 @@ def get_min_interval(data: list, proportion: float = 0.90):
     if min(d) > 90:
         return np.nan
     else:
-        return min(d)
+        return min(d)"""

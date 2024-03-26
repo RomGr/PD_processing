@@ -14,10 +14,11 @@ from penetration_depth.overimposed_img import save_the_imgs
 def generate_plots(path_data, data, measurements_types, wavelength, metric: str = 'mean', Flag: bool = False, CX_overimposed: bool = False,
                    CC_overimposed: bool = False, small_ROIs: bool = False):
     
-    for measurement_type in (tqdm(measurements_types) if Flag else measurements_types):
+    for measurement_type in measurements_types:
         
         print()
         print(f"Generating the plots for {measurement_type}...")
+        
         path_data_folder, results_path = get_params(path_data, measurement_type, wavelength, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
         paths, _, match_sequence = find_all_folders(path_data_folder, measurement_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
         
@@ -25,7 +26,7 @@ def generate_plots(path_data, data, measurements_types, wavelength, metric: str 
             dat = data[tuple(measurement_type)]
         else:
             dat = data[measurement_type]
-        generate_histogram_master(dat, results_path, match_sequence, Flag = Flag)
+        """generate_histogram_master(dat, results_path, match_sequence, Flag = Flag)"""
     
         thicknesses = get_x_thicnkesses(dat, measurement_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
         _, parameters, parameters_std = get_plot_parameters(thicknesses, dat, metric)

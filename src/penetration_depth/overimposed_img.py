@@ -17,13 +17,16 @@ def save_the_imgs(paths: list, results_path: str, wavelength: str, Flag: bool = 
     #   Flag (bool): if True, tqdm is used to display a progress bar
     ----------------------------------------------------------- """
     for path in (tqdm(paths) if Flag else paths):
-        try:
-            save_img(path, results_path, wavelength, CC_overimposed = CC_overimposed, measurement_type = measurement_type)
-        except FileNotFoundError :
-            if wavelength != '550nm' and wavelength != '650nm':
-                pass
-            else:
-                traceback.print_exc()
+        if 'combined' in path:
+            pass
+        else:
+            try:
+                save_img(path, results_path, wavelength, CC_overimposed = CC_overimposed, measurement_type = measurement_type)
+            except FileNotFoundError :
+                if wavelength != '550nm' and wavelength != '650nm':
+                    pass
+                else:
+                    traceback.print_exc()
                     
                     
 def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool = False, measurement_type = None):
@@ -35,21 +38,21 @@ def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool
     #   results_path (str): path to the results folder
     #   wavelength (str): wavelength of the measurement
     ----------------------------------------------------------- """
-    if CC_overimposed:
-        path_msk = os.path.join(path, 'annotation', 'small_ROIs')
-    else:
-        path_msk = os.path.join(path, 'annotation')
+    path_msk = os.path.join(path, 'annotation')
     paths_masks = os.listdir(path_msk)
     path_masks_rel = []
     
     # get the annotation masks
     for p in paths_masks:
-        if '.tif' in p:
-            if measurement_type is not None:
-                if measurement_type[1] in p:
+        if 'combined' in p:
+            pass
+        else:
+            if '.tif' in p:
+                if measurement_type is not None:
+                    if measurement_type[1] in p:
+                        path_masks_rel.append(os.path.join(path_msk, p))
+                else:
                     path_masks_rel.append(os.path.join(path_msk, p))
-            else:
-                path_masks_rel.append(os.path.join(path_msk, p))
 
     try:
         os.mkdir(os.path.join(results_path, 'imgs'))
