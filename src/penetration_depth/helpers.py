@@ -57,7 +57,7 @@ def load_match_sequence(measurement_type: str, CX_overimposed: bool = False, CC_
     else:
         return data[measurement_type]
 
-def get_measurement_numbers(measurement_type: str, CC_overimposed: bool = False):
+def get_measurement_numbers(measurement_type: str, CC_overimposed: bool = False, small_ROIs: bool = False):
     """
     load and get the measurement numbers (i.e. number of ROIs) for the given measurement type
     
@@ -68,6 +68,8 @@ def get_measurement_numbers(measurement_type: str, CC_overimposed: bool = False)
     """
     if CC_overimposed:
         return 50
+    elif small_ROIs:
+        return 20
     else:
         dir_path = os.path.dirname(os.path.realpath(__file__))
         data = load_json(os.path.join(dir_path, 'data', 'measurement_numbers.json'))
@@ -84,3 +86,28 @@ def load_parameters_save():
     """
     dir_path = os.path.dirname(os.path.realpath(__file__))
     return load_json(os.path.join(dir_path, 'data', 'parameters_save.json'))
+
+def load_repetitions():
+    """
+    load and get the parameters and the corresponding labels in the MM
+    
+    Returns
+    -------
+    measurement_type : str
+        the measurement type
+    """
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    return load_json(os.path.join(dir_path, 'data', 'repetitions.json'))
+
+def save_repetitions(repetitions):
+    """
+    load and get the parameters and the corresponding labels in the MM
+    
+    Returns
+    -------
+    measurement_type : str
+        the measurement type
+    """
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(dir_path, 'data', 'repetitions.json'), 'w') as f:
+        json.dump(repetitions, f)

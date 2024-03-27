@@ -3,9 +3,10 @@ import pandas as pd
 import pickle
 import copy
 import math
+from penetration_depth.helpers import load_repetitions
 
 def save_data_prism(measurements_types: list, path_data: str, wavelength: str, parameters: list, max_number_ROIs:int, number_ROIs: list,
-                    CX_overimposed: bool = False, CC_overimposed: bool = False):
+                    CX_overimposed: bool = False, CC_overimposed: bool = False, small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # save_data_prism is the master function saving the data to plug them in the prism software
     #
@@ -16,7 +17,7 @@ def save_data_prism(measurements_types: list, path_data: str, wavelength: str, p
     #   parameters (list): list of the parameters of interest
     ----------------------------------------------------------- """
     data_parameter, data_parameter_complete_thickness = get_data_df(measurements_types, path_data, wavelength, parameters, max_number_ROIs, number_ROIs,
-                                                                    CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
+                                                                    CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed, small_ROIs = small_ROIs)
     
     print()
     print(f"Creating the output file to plug in prism for {wavelength}...")
@@ -57,7 +58,7 @@ def save_data_prism(measurements_types: list, path_data: str, wavelength: str, p
     
     
 def get_data_df(measurements_types: list, paths_data: str, wavelength, parameters, max_number_ROIs, number_ROIs,
-                CX_overimposed: bool = False, CC_overimposed: bool = False):
+                CX_overimposed: bool = False, CC_overimposed: bool = False, small_ROIs: bool = False):
     """ -----------------------------------------------------------
     # get the data as a dict of dataframes that can be saved and later plugged in the prism software
     #
@@ -87,10 +88,15 @@ def get_data_df(measurements_types: list, paths_data: str, wavelength, parameter
             val = dict(val)
             if number_ROIs[0] is not None:
                 for key, v in val.items():
-                    if measurements_type[1]== 'GM':
-                        max_nb = number_ROIs[0] * max_number_ROIs
-                    else: 
-                        max_nb = number_ROIs[1] * max_number_ROIs
+                    if small_ROIs:
+                        repetitions = load_repetitions()
+                        max_nb = max_number_ROIs * number_ROIs[1][measurements_type + 'WM'] * repetitions[measurements_type]
+                    else:
+                        if measurements_type[1]== 'GM':
+                            max_nb = number_ROIs[0] * max_number_ROIs
+                        else: 
+                            max_nb = number_ROIs[1] * max_number_ROIs
+                            
                     if len(val[key]) < max_nb:
                         val[key] = val[key] + [math.nan] * (max_nb - len(val[key]))
                 

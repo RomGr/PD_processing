@@ -26,27 +26,28 @@ def process_PD(path_data: str, measurements_types: list, wavelengths: list, para
     ----------------------------------------------------------- """
     
     parameters_save = list(load_parameters_save().keys())
-    if CX_overimposed or CC_overimposed:
+    if small_ROIs:
         print()
         print(f"Moving the annotations and creating the small ROIs...")
         ROIs_GM, ROIs_WM = move_annotations(path_data, max_number_ROIs, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed, small_ROIs = small_ROIs,
-                                            Flag = Flag)
+                                                measurements_types = measurements_types, Flag = Flag)
         print()
-        print(f"Annotations and small ROIs processed...")
+        print(f"Small ROIs processed...")
         print()
     else:
         ROIs_GM, ROIs_WM = None, None
 
-    
     # iterate over the wavelengths
     for wavelength in wavelengths:
         print()
         print('Processing: ' + wavelength + '...')
-        
+            
         # load the data and save the raw data for the different ROIs
         data_measurement = load_data(path_data, measurements_types, wavelength, parameters_save, Flag = Flag, 
                                      iq_size = iq_size, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed,
                                      small_ROIs = small_ROIs)
+        
+        
         
         # generate the plots
         _ = generate_plots(path_data, data_measurement, measurements_types, wavelength, metric = metric,
@@ -59,10 +60,7 @@ def process_PD(path_data: str, measurements_types: list, wavelengths: list, para
         
         # save the data in a "prism" format
         save_data_prism(measurements_types, path_data, wavelength, parameters, max_number_ROIs, [ROIs_GM, ROIs_WM],
-                        CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
+                        CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed, small_ROIs=small_ROIs)
         print()
         print('Processed: ' + wavelength + '\n')
         print()
-    
-    return data_measurement
-        

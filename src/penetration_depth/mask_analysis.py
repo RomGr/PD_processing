@@ -196,13 +196,13 @@ def find_all_folders(path_data: str, measurements_type: str, CX_overimposed: boo
     #   match_sequence (str): matching sequence used to find the folders of interest
     ----------------------------------------------------------- """
     filename_mask, match_sequence = load_match_sequence(measurements_type, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed)
-
+    
     paths = []
     # iterate over each result of the results folder
     for folder in os.listdir(path_data):
         if should_add_folder(match_sequence, folder):
             paths.append(os.path.join(path_data, folder))
-            
+     
     return paths, filename_mask, match_sequence
 
 
@@ -239,7 +239,7 @@ def check_annotation(paths: list, measurements_type: str, filename_mask: str, CX
     #   boolean: True if the folder should be added, False otherwise
     ----------------------------------------------------------- """
     if small_ROIs:
-        numbers = get_measurement_numbers(measurements_type[0], small_ROIs)
+        numbers = get_measurement_numbers(measurements_type[0], small_ROIs = small_ROIs)
     elif CX_overimposed:
         numbers = get_measurement_numbers(measurements_type[0])
     else:
@@ -268,7 +268,7 @@ def check_annotation(paths: list, measurements_type: str, filename_mask: str, CX
                 if counter == length:
                     annotated = True
         else:
-            if counter > numbers:
+            if counter >= numbers:
                 annotated = True
         
         # else raise a warning

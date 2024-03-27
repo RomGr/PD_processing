@@ -3,8 +3,64 @@ import numpy as np
 import random
 random.seed(42)
 from PIL import Image
+from tqdm import tqdm
+from collections import Counter
+from penetration_depth.helpers import save_repetitions
 
-def move_annotations(path_data_orig, max_number_ROIs, CX_overimposed: bool = False, CC_overimposed: bool = False, small_ROIs: bool = False,
+def move_annotations(path_data_orig, max_number_ROIs, CX_overimposed: bool = False, CC_overimposed: bool = False, small_ROIs: bool = False, measurements_types: list = None,
+                     Flag: bool = False):
+    
+    if CX_overimposed or CC_overimposed:
+        return move_annotations_CC_CX(path_data_orig, max_number_ROIs, CX_overimposed = CX_overimposed, CC_overimposed = CC_overimposed, small_ROIs = small_ROIs, Flag = Flag)
+    else:
+        return move_annotations_legacy(path_data_orig, max_number_ROIs, small_ROIs = small_ROIs, measurements_types = measurements_types, Flag = Flag)
+    
+
+def move_annotations_legacy(path_data_orig, max_number_ROIs, small_ROIs: bool = False, measurements_types: list = None, Flag: bool = False):
+    
+    ROIs_GM = {}
+    ROIs_WM = {}
+    
+    repetitions = {}
+    for measurement_type in measurements_types:
+        
+        if Flag:
+            print()
+            print(f"Creating small ROIs for {measurement_type}...")
+            
+        path_data = os.path.join(path_data_orig, measurement_type)
+        
+        repetitions[measurement_type] = create_annotation_json(path_data)
+        
+        for folder in (tqdm(os.listdir(path_data)) if Flag else os.listdir(path_data)):
+
+            if folder != 'results':
+                path_annotation = os.path.join(path_data, folder, 'annotation')
+                annotations = []
+                    
+                for file in os.listdir(path_annotation):
+                    if 'overimposed' in file:
+                        annotations.append(os.path.join(path_annotation, file))
+                
+                if small_ROIs:
+                    create_small_ROIs(annotations, max_number_ROIs, WM = True)   
+                    
+                ROI_GM = 0
+                ROI_WM = len(annotations)
+        
+        ROIs_GM[measurement_type + 'GM'] = ROI_GM
+        ROIs_WM[measurement_type + 'WM'] = ROI_WM
+        
+        if Flag:
+            print(f"Small ROIs created for {measurement_type}...")
+            print()
+                
+    save_repetitions(repetitions)
+    return ROIs_GM, ROIs_WM  
+
+
+
+def move_annotations_CC_CX(path_data_orig, max_number_ROIs, CX_overimposed: bool = False, CC_overimposed: bool = False, small_ROIs: bool = False,
                      Flag: bool = False):
     
 
@@ -50,8 +106,6 @@ def move_annotations(path_data_orig, max_number_ROIs, CX_overimposed: bool = Fal
                 if small_ROIs:
                     create_small_ROIs(annotations_GM, max_number_ROIs, WM = False)  
                 
-                             
-             
             ROIs_GM = len(annotations_GM)
             ROIs_WM = len(annotations_WM)
             
@@ -89,7 +143,7 @@ def create_small_ROIs(annotations, max_number_ROIs, WM: bool = True):
         else:
             random_elements = range(1, ROI_counter + 1)
 
-        for x in range(1, len(random_elements) + 1):
+        for x in random_elements:
             if np.sum(ROIs == x) != 0:
                 all_ROIs.append((ROIs == x) * 255)
                 color = [random.randint(1, 255), random.randint(1, 255), random.randint(1, 255)]
@@ -97,7 +151,6 @@ def create_small_ROIs(annotations, max_number_ROIs, WM: bool = True):
                     for idy in range(ROIs_combined.shape[1]):
                         if ROIs[idx, idy] == x:
                             ROIs_combined[idx, idy] = color
-
     
     
     for idx, ROI in enumerate(all_ROIs):
@@ -158,3 +211,16 @@ def selectROIs(ROIs, image, size_ROI):
                 ROI_counter = ROI_counter + 1
 
     return ROIs, ROI_counter
+
+
+def most_common_occurrence(lst):
+    if not lst:
+        return 0  # If the list is empty, there are no occurrences
+    counts = Counter(lst)
+    return max(counts.values())  # Return the count of the most common element
+
+def create_annotation_json(path_data):
+    thicknesses = []
+    for folder in os.listdir(path_data):
+        thicknesses.append(folder.split('um_')[0].split('-')[-1])
+    return most_common_occurrence(thicknesses)
