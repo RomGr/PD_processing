@@ -39,7 +39,7 @@ def move_annotations_legacy(path_data_orig, max_number_ROIs, small_ROIs: bool = 
                 annotations = []
                     
                 for file in os.listdir(path_annotation):
-                    if 'overimposed' in file:
+                    if 'overimposed' in file or 'CC_' in file:
                         annotations.append(os.path.join(path_annotation, file))
                 
                 if small_ROIs:
