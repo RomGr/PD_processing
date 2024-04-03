@@ -491,7 +491,10 @@ def reorganize_data(data: dict):
 
     for parameter, values in data.items():
         for idx, val in values.items():
-            data_reorganized[idx][parameter] = val
+            try:
+                data_reorganized[idx][parameter] = val
+            except:
+                pass
     return data_reorganized
 
 

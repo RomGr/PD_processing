@@ -88,7 +88,7 @@ def get_data_df(measurements_types: list, paths_data: str, wavelength, parameter
             val = dict(val)
             if number_ROIs[0] is not None:
                 for key, v in val.items():
-                    if small_ROIs:
+                    if small_ROIs and not (CX_overimposed or CC_overimposed):
                         repetitions = load_repetitions()
                         max_nb = max_number_ROIs * number_ROIs[1][measurements_type + 'WM'] * repetitions[measurements_type]
                     else:

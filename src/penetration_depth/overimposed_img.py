@@ -41,6 +41,7 @@ def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool
     path_msk = os.path.join(path, 'annotation')
     paths_masks = os.listdir(path_msk)
     path_masks_rel = []
+    path_masks_rel_other = []
     
     # get the annotation masks
     for p in paths_masks:
@@ -51,6 +52,8 @@ def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool
                 if measurement_type is not None:
                     if measurement_type[1] in p:
                         path_masks_rel.append(os.path.join(path_msk, p))
+                    else:
+                        path_masks_rel_other.append(os.path.join(path_msk, p))
                 else:
                     path_masks_rel.append(os.path.join(path_msk, p))
 
@@ -67,7 +70,7 @@ def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool
     except:
         pass
     # ...and generate the pixel image for it
-    generate_pixel_image(path_image, path_masks_rel, path_save)
+    generate_pixel_image(path_image, path_masks_rel, path_save, path_masks_rel_other, val_replace = 0)
 
     # do the same for each of the polarimetric parameters
     for parameter in ['Depolarization', 'Linear retardance', 'Azimuth of optical axis']:
@@ -77,10 +80,10 @@ def save_img(path: str, results_path: str, wavelength: str, CC_overimposed: bool
             os.mkdir(os.path.join(results_path, 'imgs', parameter))
         except:
             pass
-        generate_pixel_image(path_image, path_masks_rel, path_save, val_replace = 0)
+        generate_pixel_image(path_image, path_masks_rel, path_save, path_masks_rel_other, val_replace = 0)
 
 
-def generate_pixel_image(path_image: str, paths_masks: list, path_save: str, val_replace = 255):    
+def generate_pixel_image(path_image: str, paths_masks: list, path_save: str, path_masks_rel_other:list, val_replace = 255):    
     """ -----------------------------------------------------------
     # creates the images overlying the masks and the polarimetric parameters
     #
@@ -92,7 +95,15 @@ def generate_pixel_image(path_image: str, paths_masks: list, path_save: str, val
     ----------------------------------------------------------- """
     im = Image.open(path_image)
     imnp = np.array(im)
+    imnp = add_to_image(paths_masks, imnp, val_replace)
+    if val_replace == 255:
+        val_replace_other = 0
+    else:
+        val_replace_other = 255
+    imnp = add_to_image(path_masks_rel_other, imnp, val_replace_other)
+    Image.fromarray(imnp).save(path_save)
     
+def add_to_image(paths_masks, imnp, val_replace):
     masks = []
     for masked in paths_masks:
         masks.append(np.array(Image.open(masked)))
@@ -131,4 +142,4 @@ def generate_pixel_image(path_image: str, paths_masks: list, path_save: str, val
         imnp[add[0] - 1][add[1] - 1] = val_replace
         imnp[add[0] + 1][add[1] - 1] = val_replace
     
-    Image.fromarray(imnp).save(path_save)
+    return imnp
